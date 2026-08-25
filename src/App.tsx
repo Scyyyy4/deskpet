@@ -6,6 +6,15 @@ type Mood = "idle" | "happy" | "sleep";
 
 const moods: Mood[] = ["idle", "happy", "sleep"];
 
+async function ensureAlwaysOnTop() {
+  const win = getCurrentWindow();
+  await win.setAlwaysOnTop(true);
+  // Some Linux WMs drop the flag after focus changes; re-apply periodically.
+  return window.setInterval(() => {
+    void win.setAlwaysOnTop(true);
+  }, 2000);
+}
+
 function App() {
   const [mood, setMood] = useState<Mood>("idle");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -20,6 +29,16 @@ function App() {
 
   const quit = useCallback(async () => {
     await getCurrentWindow().close();
+  }, []);
+
+  useEffect(() => {
+    let timer: number | undefined;
+    void ensureAlwaysOnTop().then((id) => {
+      timer = id;
+    });
+    return () => {
+      if (timer !== undefined) window.clearInterval(timer);
+    };
   }, []);
 
   useEffect(() => {

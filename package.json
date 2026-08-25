@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "tauri:dev": "env WAYLAND_DISPLAY= GDK_BACKEND=x11 XDG_SESSION_TYPE=x11 tauri dev",
+    "tauri:build": "env WAYLAND_DISPLAY= GDK_BACKEND=x11 XDG_SESSION_TYPE=x11 tauri build"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

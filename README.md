@@ -14,23 +14,26 @@ Standalone starter app — later it can be attached to [QuizDesk](https://github
 
 ## Run
 
-Requires [Tauri prerequisites](https://tauri.app/start/prerequisites/) (Rust + platform WebView deps).
+Requires [Tauri prerequisites](https://tauri.app/start/prerequisites/) (Rust + platform WebView deps) and Node 18+ (use `fnm` / `nvm` if the system Node is too old).
 
 ```bash
 git clone https://github.com/Scyyyy4/deskpet.git
 cd deskpet
 npm install
-npm run tauri dev
+# Linux (Wayland): use the X11 wrapper so always-on-top works
+./scripts/dev-x11.sh
+# or: npm run tauri:dev
 ```
 
 Build installers:
 
 ```bash
-npm run tauri build
+npm run tauri:build
 ```
 
 ## Notes
 
 - On macOS, transparency uses `macOSPrivateApi`.
 - Linux needs `webkit2gtk` / related packages from Tauri’s Linux prerequisites.
+- **Linux + Wayland**: compositors block app-controlled always-on-top. `npm run tauri:dev` / `scripts/dev-x11.sh` force `GDK_BACKEND=x11` so the pet runs on XWayland, where pin-to-top works.
 - This is intentionally minimal so it can be merged into QuizDesk later.
