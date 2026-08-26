@@ -33,7 +33,7 @@ No Node.js needed. Grab a build from **[Releases](https://github.com/Scyyyy4/des
 
 Install, open **DeskPet**, and you're done.
 
-> **macOS:** If macOS says it can't verify the developer, go to **System Settings → Privacy & Security** and allow the app to open.
+> **macOS:** If macOS says it can't verify the developer, go to **System Settings → Privacy & Security** and allow the app to open. If that setting never shows a prompt (or the app still won't open), download the **other** macOS build instead (`aarch64` ↔ `x86_64`).
 
 > **Linux (Wayland):** If the pet doesn't stay on top, try launching with X11:
 > ```bash

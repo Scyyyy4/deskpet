@@ -70,7 +70,7 @@ jobs:
             | macOS (Intel) | `.dmg` with `x86_64` |
             | Linux | `.deb` or `.AppImage` |
 
-            On first macOS open, if you see “cannot verify the developer,” allow it in System Settings → Privacy & Security.
+            On first macOS open, if you see “cannot verify the developer,” allow it in System Settings → Privacy & Security. If that setting never shows a prompt (or the app still won’t open), try the **other** macOS build (`aarch64` ↔ `x86_64`).
 
             ### Linux tip (Wayland)
 
