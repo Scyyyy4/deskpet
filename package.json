@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "node --experimental-strip-types --test src/edgeWalk.test.ts src/clickThrough.test.ts src/windowSize.test.ts",
+    "test": "node --experimental-strip-types --test src/edgeWalk.test.ts src/clickThrough.test.ts src/windowSize.test.ts src/skins.test.ts",
     "tauri": "tauri",
     "tauri:dev": "env WAYLAND_DISPLAY= GDK_BACKEND=x11 XDG_SESSION_TYPE=x11 tauri dev",
     "tauri:build": "env WAYLAND_DISPLAY= GDK_BACKEND=x11 XDG_SESSION_TYPE=x11 tauri build"

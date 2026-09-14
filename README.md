@@ -15,7 +15,7 @@ Built with **Tauri 2 + React**. Desktop only — Windows, macOS, and Linux.
 | **Walks on its own** | Patrols the work-area edge (above the taskbar / dock), turns around at the ends |
 | **Drag** | Move the pet anywhere; walking pauses, then resumes on the nearest edge |
 | **Click** | Cycle moods: idle → happy → sleep (sleep rests in place) |
-| **Right-click** | Open menu (change mood / quit) |
+| **Right-click** | Open menu (change mood / change skin / quit) |
 | **Resize** | Drag the window edges/corners, or scroll the mouse wheel on the pet (remembered) |
 | **Click-through** | Empty/transparent window padding passes clicks to whatever is underneath |
 

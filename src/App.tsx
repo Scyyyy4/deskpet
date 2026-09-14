@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { rectsFromElements } from "./clickThrough";
+import {
+  SKIN_LABELS,
+  SKINS,
+  loadSavedSkin,
+  saveSkin,
+  type Skin,
+} from "./skins";
 import { useClickThrough } from "./useClickThrough";
 import { useEdgeWalk } from "./useEdgeWalk";
 import { useWindowResize } from "./useWindowResize";
@@ -22,6 +29,7 @@ async function ensureAlwaysOnTop() {
 
 function App() {
   const [mood, setMood] = useState<Mood>("idle");
+  const [skin, setSkin] = useState<Skin>(loadSavedSkin);
   const [menuOpen, setMenuOpen] = useState(false);
   const resizingRef = useRef(false);
   const walk = useEdgeWalk({
@@ -52,6 +60,11 @@ function App() {
       return next;
     });
     setMenuOpen(false);
+  }, []);
+
+  const chooseSkin = useCallback((next: Skin) => {
+    setSkin(next);
+    saveSkin(next);
   }, []);
 
   const quit = useCallback(async () => {
@@ -99,6 +112,7 @@ function App() {
       <div
         ref={petRef}
         className={`pet mood-${mood}${walk.pose.moving ? " walking" : ""}`}
+        data-skin={skin}
         style={
           {
             "--pet-rot": `${walk.pose.rotation}deg`,
@@ -126,10 +140,13 @@ function App() {
         <div className="pet-gfx">
           <div className="shadow" />
           <div className="body">
+            <div className="ear left" />
+            <div className="ear right" />
             <div className="cheek left" />
             <div className="cheek right" />
             <div className={`eye left ${mood === "sleep" ? "closed" : ""}`} />
             <div className={`eye right ${mood === "sleep" ? "closed" : ""}`} />
+            <div className="nose" />
             <div className={`mouth ${mood}`} />
           </div>
         </div>
@@ -145,6 +162,20 @@ function App() {
           <button type="button" onClick={cycleMood}>
             Change mood
           </button>
+          <p className="menu-label">Skin</p>
+          <div className="menu-skins" role="group" aria-label="Skin">
+            {SKINS.map((id) => (
+              <button
+                key={id}
+                type="button"
+                className={skin === id ? "active" : undefined}
+                aria-pressed={skin === id}
+                onClick={() => chooseSkin(id)}
+              >
+                {SKIN_LABELS[id]}
+              </button>
+            ))}
+          </div>
           <button type="button" className="danger" onClick={quit}>
             Quit
           </button>

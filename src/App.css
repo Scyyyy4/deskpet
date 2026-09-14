@@ -169,6 +169,294 @@ body {
   bottom: 26px;
 }
 
+.ear,
+.nose {
+  display: none;
+}
+
+/* Peach puff — rounder, blushier, apricot instead of gold. */
+[data-skin="peach"] .body {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #ffe6d6 0%, #ff9b78 52%, #e86a52 100%);
+  box-shadow: inset -8px -10px 0 rgba(180, 60, 40, 0.16);
+}
+
+[data-skin="peach"] .body::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: 18px;
+  width: 22px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.38);
+  pointer-events: none;
+}
+
+[data-skin="peach"] .eye {
+  top: 36px;
+  width: 9px;
+  height: 12px;
+}
+
+[data-skin="peach"] .eye.left {
+  left: 26px;
+}
+
+[data-skin="peach"] .eye.right {
+  right: 26px;
+}
+
+[data-skin="peach"] .eye.closed {
+  top: 42px;
+}
+
+[data-skin="peach"] .cheek {
+  top: 52px;
+  width: 18px;
+  height: 12px;
+  background: rgba(255, 80, 110, 0.5);
+}
+
+[data-skin="peach"] .cheek.left {
+  left: 12px;
+}
+
+[data-skin="peach"] .cheek.right {
+  right: 12px;
+}
+
+[data-skin="peach"] .mouth {
+  bottom: 24px;
+  width: 16px;
+}
+
+[data-skin="peach"] .mouth.happy {
+  width: 24px;
+  height: 14px;
+  border-radius: 0 0 16px 16px;
+}
+
+[data-skin="peach"] .shadow {
+  width: 64px;
+  background: rgba(80, 28, 24, 0.2);
+}
+
+/* Cat bean — wider orange loaf with ears, slit eyes, and a pink nose. */
+[data-skin="cat"] .body {
+  width: 102px;
+  height: 70px;
+  border-radius: 48% 48% 40% 40%;
+  background: radial-gradient(circle at 34% 30%, #ffe2b4 0%, #f4a04a 50%, #cf7024 100%);
+  box-shadow: inset -8px -8px 0 rgba(150, 70, 20, 0.2);
+}
+
+[data-skin="cat"] .body::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 18px;
+  height: 24px;
+  transform: translateX(-50%);
+  background: rgba(170, 70, 16, 0.28);
+  border-radius: 40%;
+  pointer-events: none;
+}
+
+[data-skin="cat"] .ear {
+  display: block;
+  position: absolute;
+  top: -16px;
+  width: 0;
+  height: 0;
+  border-left: 11px solid transparent;
+  border-right: 11px solid transparent;
+  border-bottom: 20px solid #f4a04a;
+  pointer-events: none;
+}
+
+[data-skin="cat"] .ear.left {
+  left: 16px;
+  transform: rotate(-14deg);
+}
+
+[data-skin="cat"] .ear.right {
+  right: 16px;
+  transform: rotate(14deg);
+}
+
+[data-skin="cat"] .ear::after {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 8px;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 10px solid #ffb8c0;
+}
+
+[data-skin="cat"] .eye {
+  top: 24px;
+  width: 12px;
+  height: 11px;
+  background: #2b2118;
+}
+
+[data-skin="cat"] .eye.left {
+  left: 26px;
+}
+
+[data-skin="cat"] .eye.right {
+  right: 26px;
+}
+
+[data-skin="cat"] .eye:not(.closed)::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 2px;
+  height: 9px;
+  background: #f6d98a;
+  border-radius: 1px;
+}
+
+[data-skin="cat"] .eye.closed {
+  top: 28px;
+  height: 3px;
+}
+
+[data-skin="cat"] .nose {
+  display: block;
+  position: absolute;
+  left: 50%;
+  top: 40px;
+  width: 8px;
+  height: 6px;
+  background: #e88888;
+  border-radius: 50% 50% 55% 55%;
+  transform: translateX(-50%);
+}
+
+[data-skin="cat"] .cheek {
+  top: 40px;
+  width: 12px;
+  height: 7px;
+}
+
+[data-skin="cat"] .cheek.left {
+  left: 10px;
+}
+
+[data-skin="cat"] .cheek.right {
+  right: 10px;
+}
+
+[data-skin="cat"] .mouth {
+  bottom: 12px;
+  width: 14px;
+  height: 6px;
+}
+
+[data-skin="cat"] .mouth.happy {
+  width: 18px;
+  height: 10px;
+  bottom: 10px;
+}
+
+[data-skin="cat"] .mouth.sleep {
+  bottom: 16px;
+}
+
+[data-skin="cat"] .shadow {
+  width: 78px;
+}
+
+/* Blue drop — tall sleepy dewdrop with a highlight. */
+[data-skin="drop"] .body {
+  width: 76px;
+  height: 98px;
+  border-radius: 72% 72% 46% 46% / 62% 62% 38% 38%;
+  background: radial-gradient(circle at 34% 28%, #dff4ff 0%, #5eb4e6 54%, #2a74b0 100%);
+  box-shadow: inset -8px -10px 0 rgba(20, 70, 120, 0.22);
+}
+
+[data-skin="drop"] .body::before {
+  content: "";
+  position: absolute;
+  top: 16px;
+  left: 18px;
+  width: 14px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+}
+
+[data-skin="drop"] .eye {
+  top: 42px;
+  width: 12px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+[data-skin="drop"] .eye.left {
+  left: 18px;
+}
+
+[data-skin="drop"] .eye.right {
+  right: 18px;
+}
+
+[data-skin="drop"].mood-happy .eye:not(.closed) {
+  height: 11px;
+  top: 40px;
+}
+
+[data-skin="drop"] .eye.closed {
+  top: 44px;
+  height: 3px;
+}
+
+[data-skin="drop"] .cheek {
+  top: 54px;
+  width: 12px;
+  height: 7px;
+  background: rgba(90, 150, 220, 0.35);
+}
+
+[data-skin="drop"] .cheek.left {
+  left: 8px;
+}
+
+[data-skin="drop"] .cheek.right {
+  right: 8px;
+}
+
+[data-skin="drop"] .mouth {
+  bottom: 22px;
+  width: 12px;
+  height: 5px;
+}
+
+[data-skin="drop"] .mouth.happy {
+  width: 16px;
+  height: 9px;
+}
+
+[data-skin="drop"] .mouth.sleep {
+  bottom: 26px;
+  width: 8px;
+}
+
+[data-skin="drop"] .shadow {
+  width: 52px;
+  background: rgba(20, 40, 70, 0.22);
+}
+
 .shadow {
   position: absolute;
   bottom: 4px;
@@ -311,6 +599,29 @@ body {
 
 .menu button.danger {
   color: #a33;
+}
+
+.menu-label {
+  margin: 2px 4px 0;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: rgba(43, 33, 24, 0.55);
+}
+
+.menu-skins {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+}
+
+.menu-skins button {
+  padding: 5px 8px;
+  font-size: 11px;
+}
+
+.menu-skins button.active {
+  background: rgba(240, 180, 70, 0.35);
+  font-weight: 600;
 }
 
 @keyframes bob {
