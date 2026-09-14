@@ -55,12 +55,13 @@ function App() {
     <main
       className="stage"
       data-edge={walk.pose.edge}
-      data-tauri-drag-region
       onPointerDown={(e) => {
-        if (e.button !== 0) return;
         if ((e.target as HTMLElement).closest(".menu")) return;
-        walk.onPointerDown();
+        walk.onPointerDown(e);
       }}
+      onPointerMove={walk.onPointerMove}
+      onPointerUp={walk.onPointerUp}
+      onPointerCancel={walk.onPointerUp}
       onContextMenu={(e) => {
         e.preventDefault();
         setMenuOpen(true);
@@ -76,7 +77,6 @@ function App() {
     >
       <div
         className={`pet mood-${mood}${walk.pose.moving ? " walking" : ""}`}
-        data-tauri-drag-region
         style={
           {
             "--pet-rot": `${walk.pose.rotation}deg`,
@@ -84,8 +84,8 @@ function App() {
           } as CSSProperties
         }
       >
-        <div className="shadow" data-tauri-drag-region />
-        <div className="body" data-tauri-drag-region>
+        <div className="shadow" />
+        <div className="body">
           <div className="cheek left" />
           <div className="cheek right" />
           <div className={`eye left ${mood === "sleep" ? "closed" : ""}`} />

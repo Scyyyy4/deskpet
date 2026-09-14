@@ -29,6 +29,7 @@ body {
   place-items: end center;
   cursor: grab;
   position: relative;
+  touch-action: none;
 }
 
 .stage[data-edge="top"] {
