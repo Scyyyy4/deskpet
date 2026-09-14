@@ -82,7 +82,10 @@ function attachPoint(
   };
 }
 
-export function useEdgeWalk(opts: { paused: boolean }) {
+export function useEdgeWalk(opts: {
+  paused: boolean;
+  extraPausedRefs?: Array<{ current: boolean }>;
+}) {
   const [pose, setPose] = useState<WalkPose>({
     edge: "bottom",
     facing: "right",
@@ -92,6 +95,8 @@ export function useEdgeWalk(opts: { paused: boolean }) {
 
   const pausedPropRef = useRef(opts.paused);
   pausedPropRef.current = opts.paused;
+  const extraPausedRefsRef = useRef(opts.extraPausedRefs);
+  extraPausedRefsRef.current = opts.extraPausedRefs;
 
   const pointerDownRef = useRef(false);
   const draggingRef = useRef(false);
@@ -115,6 +120,7 @@ export function useEdgeWalk(opts: { paused: boolean }) {
   const lastApplyRef = useRef<Point>({ x: Number.NaN, y: Number.NaN });
   const inFlightRef = useRef(false);
   const pendingRef = useRef<Point | null>(null);
+  const screenEpochRef = useRef(0);
 
   const syncPose = useCallback((moving: boolean) => {
     const walk = stateRef.current;
@@ -162,6 +168,7 @@ export function useEdgeWalk(opts: { paused: boolean }) {
     let lastTs = 0;
     let stepping = false;
     let lastScreenRead = 0;
+    let lastEpoch = screenEpochRef.current;
     let screen: Screen | null = null;
 
     const win = getCurrentWindow();
@@ -184,8 +191,10 @@ export function useEdgeWalk(opts: { paused: boolean }) {
       if (cancelled || stepping) return;
       stepping = true;
       try {
-        if (!screen || ts - lastScreenRead > 1500) {
+        const epoch = screenEpochRef.current;
+        if (!screen || ts - lastScreenRead > 1500 || epoch !== lastEpoch) {
           lastScreenRead = ts;
+          lastEpoch = epoch;
           try {
             screen = await readScreen();
             if (screen) scaleRef.current = screen.scale;
@@ -207,6 +216,7 @@ export function useEdgeWalk(opts: { paused: boolean }) {
 
         const paused =
           pausedPropRef.current ||
+          extraPausedRefsRef.current?.some((ref) => ref.current) ||
           pointerDownRef.current ||
           draggingRef.current;
         if (paused) {
@@ -333,10 +343,42 @@ export function useEdgeWalk(opts: { paused: boolean }) {
     })();
   }, [applyPosition, syncPose]);
 
+  const reanchor = useCallback(async () => {
+    screenEpochRef.current += 1;
+    try {
+      const screen = await readScreen();
+      if (!screen) return;
+      const pos = await getCurrentWindow().outerPosition();
+      const attached = attachPoint(
+        { x: pos.x, y: pos.y },
+        screen.work,
+        screen.winSize,
+      );
+      stateRef.current.edge = attached.edge;
+      stateRef.current.x = attached.point.x;
+      stateRef.current.y = attached.point.y;
+      stateRef.current.direction = attached.direction;
+      stateRef.current.ready = true;
+      stateRef.current.turnUntil = 0;
+      await applyPosition(attached.point.x, attached.point.y);
+      syncPose(false);
+    } catch {
+      // Ignore races while the window is closing.
+    }
+  }, [applyPosition, syncPose]);
+
   const shouldIgnoreClick = useCallback(() => {
     if (!ignoreClickRef.current) return false;
     ignoreClickRef.current = false;
     return true;
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => {
+      screenEpochRef.current += 1;
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   useEffect(() => {
@@ -372,5 +414,6 @@ export function useEdgeWalk(opts: { paused: boolean }) {
     onPointerUp,
     shouldIgnoreClick,
     interactingRef,
+    reanchor,
   };
 }

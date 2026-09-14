@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { rectsFromElements } from "./clickThrough";
 import { useClickThrough } from "./useClickThrough";
 import { useEdgeWalk } from "./useEdgeWalk";
+import { useWindowResize } from "./useWindowResize";
+import { RESIZE_DIRS } from "./windowSize";
 import "./App.css";
 
 type Mood = "idle" | "happy" | "sleep";
@@ -20,12 +23,27 @@ async function ensureAlwaysOnTop() {
 function App() {
   const [mood, setMood] = useState<Mood>("idle");
   const [menuOpen, setMenuOpen] = useState(false);
-  const walk = useEdgeWalk({ paused: menuOpen || mood === "sleep" });
+  const resizingRef = useRef(false);
+  const walk = useEdgeWalk({
+    paused: menuOpen || mood === "sleep",
+    extraPausedRefs: [resizingRef],
+  });
+  const resize = useWindowResize({
+    edge: walk.pose.edge,
+    reanchor: walk.reanchor,
+    resizingRef,
+  });
   const petRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   useClickThrough({
     hitRefs: [petRef, menuRef],
-    pinnedRef: walk.interactingRef,
+    extraHits: () =>
+      rectsFromElements(
+        resize.handlesRef.current
+          ? [...resize.handlesRef.current.querySelectorAll(".resize-handle")]
+          : [],
+      ),
+    pinnedRefs: [walk.interactingRef, resize.resizingRef],
   });
 
   const cycleMood = useCallback(() => {
@@ -59,7 +77,25 @@ function App() {
   }, []);
 
   return (
-    <main className="stage" data-edge={walk.pose.edge}>
+    <main
+      className="stage"
+      data-edge={walk.pose.edge}
+      style={{ "--pet-scale": resize.scale } as CSSProperties}
+    >
+      <div className="resize-frame" ref={resize.handlesRef}>
+        {RESIZE_DIRS.map((dir) => (
+          <div
+            key={dir}
+            className={`resize-handle ${dir}`}
+            data-dir={dir}
+            onPointerDown={resize.onHandlePointerDown}
+            onPointerMove={resize.onHandlePointerMove}
+            onPointerUp={resize.onHandlePointerUp}
+            onPointerCancel={resize.onHandlePointerUp}
+          />
+        ))}
+      </div>
+
       <div
         ref={petRef}
         className={`pet mood-${mood}${walk.pose.moving ? " walking" : ""}`}
@@ -73,6 +109,7 @@ function App() {
         onPointerMove={walk.onPointerMove}
         onPointerUp={walk.onPointerUp}
         onPointerCancel={walk.onPointerUp}
+        onWheel={resize.onWheel}
         onContextMenu={(e) => {
           e.preventDefault();
           setMenuOpen(true);
@@ -86,13 +123,15 @@ function App() {
           cycleMood();
         }}
       >
-        <div className="shadow" />
-        <div className="body">
-          <div className="cheek left" />
-          <div className="cheek right" />
-          <div className={`eye left ${mood === "sleep" ? "closed" : ""}`} />
-          <div className={`eye right ${mood === "sleep" ? "closed" : ""}`} />
-          <div className={`mouth ${mood}`} />
+        <div className="pet-gfx">
+          <div className="shadow" />
+          <div className="body">
+            <div className="cheek left" />
+            <div className="cheek right" />
+            <div className={`eye left ${mood === "sleep" ? "closed" : ""}`} />
+            <div className={`eye right ${mood === "sleep" ? "closed" : ""}`} />
+            <div className={`mouth ${mood}`} />
+          </div>
         </div>
       </div>
 

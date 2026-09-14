@@ -4,17 +4,22 @@ import {
   cursorToWindowLocal,
   rectsFromElements,
   shouldIgnoreCursorEvents,
+  type HitRect,
 } from "./clickThrough";
 
 const POLL_MS = 16;
 
 export function useClickThrough(opts: {
   hitRefs: Array<{ current: Element | null }>;
-  pinnedRef: { current: boolean };
+  extraHits?: () => HitRect[];
+  pinnedRefs: Array<{ current: boolean }>;
 }) {
   const hitRefsRef = useRef(opts.hitRefs);
   hitRefsRef.current = opts.hitRefs;
-  const pinnedRef = opts.pinnedRef;
+  const extraHitsRef = useRef(opts.extraHits);
+  extraHitsRef.current = opts.extraHits;
+  const pinnedRefsRef = useRef(opts.pinnedRefs);
+  pinnedRefsRef.current = opts.pinnedRefs;
 
   useEffect(() => {
     const win = getCurrentWindow();
@@ -38,9 +43,12 @@ export function useClickThrough(opts: {
           window.devicePixelRatio || 1,
         );
         const next = shouldIgnoreCursorEvents({
-          pinned: pinnedRef.current,
+          pinned: pinnedRefsRef.current.some((ref) => ref.current),
           local,
-          hits: rectsFromElements(hitRefsRef.current.map((ref) => ref.current)),
+          hits: [
+            ...rectsFromElements(hitRefsRef.current.map((ref) => ref.current)),
+            ...(extraHitsRef.current?.() ?? []),
+          ],
           currentlyIgnoring: ignoring,
         });
         if (next === ignoring) return;
@@ -63,5 +71,5 @@ export function useClickThrough(opts: {
       window.clearInterval(timer);
       void win.setIgnoreCursorEvents(false);
     };
-  }, [pinnedRef]);
+  }, []);
 }
