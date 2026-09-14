@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { useEdgeWalk } from "./useEdgeWalk";
 import "./App.css";
 
 type Mood = "idle" | "happy" | "sleep";
@@ -18,6 +19,7 @@ async function ensureAlwaysOnTop() {
 function App() {
   const [mood, setMood] = useState<Mood>("idle");
   const [menuOpen, setMenuOpen] = useState(false);
+  const walk = useEdgeWalk({ paused: menuOpen || mood === "sleep" });
 
   const cycleMood = useCallback(() => {
     setMood((current) => {
@@ -52,12 +54,19 @@ function App() {
   return (
     <main
       className="stage"
+      data-edge={walk.pose.edge}
       data-tauri-drag-region
+      onPointerDown={(e) => {
+        if (e.button !== 0) return;
+        if ((e.target as HTMLElement).closest(".menu")) return;
+        walk.onPointerDown();
+      }}
       onContextMenu={(e) => {
         e.preventDefault();
         setMenuOpen(true);
       }}
       onClick={() => {
+        if (walk.shouldIgnoreClick()) return;
         if (menuOpen) {
           setMenuOpen(false);
           return;
@@ -65,7 +74,16 @@ function App() {
         cycleMood();
       }}
     >
-      <div className={`pet mood-${mood}`} data-tauri-drag-region>
+      <div
+        className={`pet mood-${mood}${walk.pose.moving ? " walking" : ""}`}
+        data-tauri-drag-region
+        style={
+          {
+            "--pet-rot": `${walk.pose.rotation}deg`,
+            "--pet-flip": walk.pose.facing === "left" ? -1 : 1,
+          } as CSSProperties
+        }
+      >
         <div className="shadow" data-tauri-drag-region />
         <div className="body" data-tauri-drag-region>
           <div className="cheek left" />
