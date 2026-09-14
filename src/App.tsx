@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { useClickThrough } from "./useClickThrough";
 import { useEdgeWalk } from "./useEdgeWalk";
 import "./App.css";
 
@@ -20,6 +21,12 @@ function App() {
   const [mood, setMood] = useState<Mood>("idle");
   const [menuOpen, setMenuOpen] = useState(false);
   const walk = useEdgeWalk({ paused: menuOpen || mood === "sleep" });
+  const petRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useClickThrough({
+    hitRefs: [petRef, menuRef],
+    pinnedRef: walk.interactingRef,
+  });
 
   const cycleMood = useCallback(() => {
     setMood((current) => {
@@ -52,30 +59,9 @@ function App() {
   }, []);
 
   return (
-    <main
-      className="stage"
-      data-edge={walk.pose.edge}
-      onPointerDown={(e) => {
-        if ((e.target as HTMLElement).closest(".menu")) return;
-        walk.onPointerDown(e);
-      }}
-      onPointerMove={walk.onPointerMove}
-      onPointerUp={walk.onPointerUp}
-      onPointerCancel={walk.onPointerUp}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        setMenuOpen(true);
-      }}
-      onClick={() => {
-        if (walk.shouldIgnoreClick()) return;
-        if (menuOpen) {
-          setMenuOpen(false);
-          return;
-        }
-        cycleMood();
-      }}
-    >
+    <main className="stage" data-edge={walk.pose.edge}>
       <div
+        ref={petRef}
         className={`pet mood-${mood}${walk.pose.moving ? " walking" : ""}`}
         style={
           {
@@ -83,6 +69,22 @@ function App() {
             "--pet-flip": walk.pose.facing === "left" ? -1 : 1,
           } as CSSProperties
         }
+        onPointerDown={walk.onPointerDown}
+        onPointerMove={walk.onPointerMove}
+        onPointerUp={walk.onPointerUp}
+        onPointerCancel={walk.onPointerUp}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setMenuOpen(true);
+        }}
+        onClick={() => {
+          if (walk.shouldIgnoreClick()) return;
+          if (menuOpen) {
+            setMenuOpen(false);
+            return;
+          }
+          cycleMood();
+        }}
       >
         <div className="shadow" />
         <div className="body">
@@ -96,6 +98,7 @@ function App() {
 
       {menuOpen && (
         <div
+          ref={menuRef}
           className="menu"
           onClick={(e) => e.stopPropagation()}
           onContextMenu={(e) => e.preventDefault()}

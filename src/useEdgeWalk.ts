@@ -95,6 +95,7 @@ export function useEdgeWalk(opts: { paused: boolean }) {
 
   const pointerDownRef = useRef(false);
   const draggingRef = useRef(false);
+  const interactingRef = useRef(false);
   const ignoreClickRef = useRef(false);
   const scaleRef = useRef(1);
   const dragStartRef = useRef<{
@@ -267,6 +268,7 @@ export function useEdgeWalk(opts: { paused: boolean }) {
   const onPointerDown = useCallback((event: PointerEvent) => {
     if (event.button !== 0) return;
     pointerDownRef.current = true;
+    interactingRef.current = true;
     draggingRef.current = false;
     ignoreClickRef.current = false;
     dragStartRef.current = {
@@ -301,6 +303,7 @@ export function useEdgeWalk(opts: { paused: boolean }) {
   const onPointerUp = useCallback(() => {
     const wasDragging = draggingRef.current;
     pointerDownRef.current = false;
+    interactingRef.current = false;
     draggingRef.current = false;
     dragStartRef.current = null;
     if (!wasDragging) {
@@ -368,5 +371,6 @@ export function useEdgeWalk(opts: { paused: boolean }) {
     onPointerMove,
     onPointerUp,
     shouldIgnoreClick,
+    interactingRef,
   };
 }
