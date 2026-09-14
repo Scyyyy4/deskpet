@@ -48,12 +48,14 @@ export function useWindowResize(opts: {
   } | null>(null);
 
   const applyInFlight = useRef(false);
+  const lastSizeRef = useRef<Size>(loadSavedLogicalSize());
   const pending = useRef<{
     size: Size;
     origin?: { x: number; y: number };
   } | null>(null);
 
   const applyWindow = useCallback(async (size: Size, origin?: { x: number; y: number }) => {
+    lastSizeRef.current = size;
     pending.current = { size, origin };
     if (applyInFlight.current) return;
     applyInFlight.current = true;
@@ -68,6 +70,7 @@ export function useWindowResize(opts: {
             new PhysicalPosition(Math.round(next.origin.x), Math.round(next.origin.y)),
           );
         }
+        lastSizeRef.current = next.size;
         saveLogicalSize(next.size);
       }
     } catch {
@@ -92,10 +95,7 @@ export function useWindowResize(opts: {
   }, [applyWindow]);
 
   const persistAndReanchor = useCallback(() => {
-    saveLogicalSize({
-      width: window.innerWidth,
-      height: window.innerHeight,
-    });
+    saveLogicalSize(lastSizeRef.current);
     void reanchorRef.current();
   }, []);
 
@@ -157,9 +157,13 @@ export function useWindowResize(opts: {
   const onHandlePointerUp = useCallback(() => {
     if (!dragRef.current) return;
     dragRef.current = null;
-    resizingRef.current = false;
-    persistAndReanchor();
-  }, [persistAndReanchor, resizingRef]);
+    const size = lastSizeRef.current;
+    void (async () => {
+      await applyWindow(size);
+      resizingRef.current = false;
+      persistAndReanchor();
+    })();
+  }, [applyWindow, persistAndReanchor, resizingRef]);
 
   const onWheel = useCallback(
     (event: WheelEvent<HTMLElement>) => {
