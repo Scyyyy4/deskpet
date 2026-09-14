@@ -8,10 +8,24 @@ export type HitRect = {
 };
 
 /** Extra CSS pixels used to regain the pet after ignore-cursor-events is on. */
-export const REGAIN_PAD_PX = 4;
+export const REGAIN_PAD_PX = 18;
 
 /** Extra CSS pixels kept while the pet is interactive, to avoid edge flicker. */
-export const HOLD_PAD_PX = 2;
+export const HOLD_PAD_PX = 10;
+
+/** Wider pads while the window is walking so the moving hit box is easier to grab. */
+export const MOVING_HOLD_PAD_PX = 22;
+export const MOVING_REGAIN_PAD_PX = 36;
+
+/** Stay interactive this long after the cursor leaves a hit, then pass through. */
+export const IGNORE_AFTER_MS = 120;
+
+export function hitPad(currentlyIgnoring: boolean, moving = false): number {
+  if (moving) {
+    return currentlyIgnoring ? MOVING_REGAIN_PAD_PX : MOVING_HOLD_PAD_PX;
+  }
+  return currentlyIgnoring ? REGAIN_PAD_PX : HOLD_PAD_PX;
+}
 
 /** Convert a desktop physical cursor point into window-local CSS pixels. */
 export function cursorToWindowLocal(
@@ -57,8 +71,24 @@ export function shouldIgnoreCursorEvents(input: {
   local: Point;
   hits: HitRect[];
   currentlyIgnoring: boolean;
+  moving?: boolean;
 }): boolean {
   if (input.pinned) return false;
-  const pad = input.currentlyIgnoring ? REGAIN_PAD_PX : HOLD_PAD_PX;
+  const pad = hitPad(input.currentlyIgnoring, input.moving ?? false);
   return !input.hits.some((rect) => pointInRect(input.local, rect, pad));
+}
+
+/**
+ * Time-gate turning click-through ON. Turning it OFF is immediate so the pet
+ * stays grabbable while the walk loop and the cursor poll race.
+ */
+export function releaseIgnoreCursorEvents(input: {
+  wantIgnore: boolean;
+  currentlyIgnoring: boolean;
+  outsideMs: number;
+  afterMs?: number;
+}): boolean {
+  if (!input.wantIgnore) return false;
+  if (input.currentlyIgnoring) return true;
+  return input.outsideMs >= (input.afterMs ?? IGNORE_AFTER_MS);
 }

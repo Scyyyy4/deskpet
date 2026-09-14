@@ -5,12 +5,17 @@ import {
   getCurrentWindow,
   monitorFromPoint,
 } from "@tauri-apps/api/window";
+import { cssPixelScale } from "./dpi";
 import {
   alongLimits,
   alongOf,
+  almostSamePoint,
+  attachAfterDrag,
   directionTowardFarEnd,
+  dragThresholdPx,
   facingFor,
-  nearestEdge,
+  followEdge,
+  isMoodTap,
   pointOnEdge,
   preferredStartEdge,
   rotationFor,
@@ -29,6 +34,12 @@ export type WalkPose = {
   facing: Facing;
   rotation: number;
   moving: boolean;
+};
+
+export type WalkWindow = {
+  x: number;
+  y: number;
+  ready: boolean;
 };
 
 type Screen = {
@@ -56,29 +67,12 @@ async function readScreen(): Promise<Screen | null> {
       width: monitor.workArea.size.width,
       height: monitor.workArea.size.height,
     },
-    scale: monitor.scaleFactor,
+    scale: cssPixelScale(
+      size.width,
+      typeof window !== "undefined" ? window.innerWidth : 0,
+      monitor.scaleFactor,
+    ),
     winSize: { width: size.width, height: size.height },
-  };
-}
-
-function attachPoint(
-  pos: Point,
-  work: Rect,
-  winSize: Size,
-): { edge: Edge; point: Point; direction: Direction } {
-  const winRect = {
-    x: pos.x,
-    y: pos.y,
-    width: winSize.width,
-    height: winSize.height,
-  };
-  const edge = nearestEdge(winRect, work);
-  const limits = alongLimits(edge, work, winSize);
-  const along = alongOf(edge, pos);
-  return {
-    edge,
-    point: pointOnEdge(edge, along, work, winSize),
-    direction: directionTowardFarEnd(along, limits.min, limits.max),
   };
 }
 
@@ -102,7 +96,9 @@ export function useEdgeWalk(opts: {
   const draggingRef = useRef(false);
   const interactingRef = useRef(false);
   const ignoreClickRef = useRef(false);
+  const downAtRef = useRef(0);
   const scaleRef = useRef(1);
+  const movingRef = useRef(false);
   const dragStartRef = useRef<{
     cursor: Point;
     win: Point;
@@ -116,14 +112,21 @@ export function useEdgeWalk(opts: {
     turnUntil: 0,
     ready: false,
   });
+  const positionRef = useRef<WalkWindow>({ x: 0, y: 0, ready: false });
 
   const lastApplyRef = useRef<Point>({ x: Number.NaN, y: Number.NaN });
   const inFlightRef = useRef(false);
   const pendingRef = useRef<Point | null>(null);
   const screenEpochRef = useRef(0);
 
+  const publishPosition = useCallback(() => {
+    const walk = stateRef.current;
+    positionRef.current = { x: walk.x, y: walk.y, ready: walk.ready };
+  }, []);
+
   const syncPose = useCallback((moving: boolean) => {
     const walk = stateRef.current;
+    movingRef.current = moving;
     const facing = facingFor(walk.edge, walk.direction);
     const rotation = rotationFor(walk.edge);
     setPose((prev) => {
@@ -139,28 +142,31 @@ export function useEdgeWalk(opts: {
     });
   }, []);
 
-  const applyPosition = useCallback(async (x: number, y: number) => {
-    const rx = Math.round(x);
-    const ry = Math.round(y);
-    if (rx === lastApplyRef.current.x && ry === lastApplyRef.current.y) return;
-    pendingRef.current = { x: rx, y: ry };
-    if (inFlightRef.current) return;
-    inFlightRef.current = true;
-    try {
-      while (pendingRef.current) {
-        const next = pendingRef.current;
-        pendingRef.current = null;
-        lastApplyRef.current = next;
-        await getCurrentWindow().setPosition(
-          new PhysicalPosition(next.x, next.y),
-        );
+  const applyPosition = useCallback(
+    async (x: number, y: number) => {
+      const rx = Math.round(x);
+      const ry = Math.round(y);
+      if (rx === lastApplyRef.current.x && ry === lastApplyRef.current.y) return;
+      pendingRef.current = { x: rx, y: ry };
+      if (inFlightRef.current) return;
+      inFlightRef.current = true;
+      try {
+        while (pendingRef.current) {
+          const next = pendingRef.current;
+          pendingRef.current = null;
+          lastApplyRef.current = next;
+          await getCurrentWindow().setPosition(
+            new PhysicalPosition(next.x, next.y),
+          );
+        }
+      } catch {
+        // Window APIs can fail if the webview is closing.
+      } finally {
+        inFlightRef.current = false;
       }
-    } catch {
-      // Window APIs can fail if the webview is closing.
-    } finally {
-      inFlightRef.current = false;
-    }
-  }, []);
+    },
+    [],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -170,6 +176,7 @@ export function useEdgeWalk(opts: {
     let lastScreenRead = 0;
     let lastEpoch = screenEpochRef.current;
     let screen: Screen | null = null;
+    let lastWinSize = { width: 0, height: 0 };
 
     const win = getCurrentWindow();
 
@@ -184,7 +191,19 @@ export function useEdgeWalk(opts: {
       stateRef.current.direction = direction;
       stateRef.current.ready = true;
       stateRef.current.turnUntil = 0;
+      publishPosition();
       await applyPosition(point.x, point.y);
+    }
+
+    async function plantCurrentEdge() {
+      if (!screen || !stateRef.current.ready) return;
+      const walk = stateRef.current;
+      const planted = followEdge(walk.edge, walk, screen.work, screen.winSize);
+      if (almostSamePoint(planted, walk)) return;
+      walk.x = planted.x;
+      walk.y = planted.y;
+      publishPosition();
+      await applyPosition(planted.x, planted.y);
     }
 
     async function step(ts: number) {
@@ -202,6 +221,15 @@ export function useEdgeWalk(opts: {
             screen = null;
           }
           if (cancelled) return;
+          if (
+            screen &&
+            (screen.winSize.width !== lastWinSize.width ||
+              screen.winSize.height !== lastWinSize.height)
+          ) {
+            lastWinSize = screen.winSize;
+            await plantCurrentEdge();
+            if (cancelled) return;
+          }
         }
         if (!screen) return;
 
@@ -255,6 +283,7 @@ export function useEdgeWalk(opts: {
         if (stepped.turned) {
           walk.turnUntil = ts + TURN_PAUSE_MS;
         }
+        publishPosition();
         syncPose(true);
         await applyPosition(walk.x, walk.y);
       } finally {
@@ -273,7 +302,7 @@ export function useEdgeWalk(opts: {
       cancelled = true;
       cancelAnimationFrame(raf);
     };
-  }, [applyPosition, syncPose]);
+  }, [applyPosition, publishPosition, syncPose]);
 
   const onPointerDown = useCallback((event: PointerEvent) => {
     if (event.button !== 0) return;
@@ -281,6 +310,7 @@ export function useEdgeWalk(opts: {
     interactingRef.current = true;
     draggingRef.current = false;
     ignoreClickRef.current = false;
+    downAtRef.current = performance.now();
     dragStartRef.current = {
       cursor: { x: event.screenX, y: event.screenY },
       win: { x: stateRef.current.x, y: stateRef.current.y },
@@ -299,15 +329,18 @@ export function useEdgeWalk(opts: {
       const scale = scaleRef.current || window.devicePixelRatio || 1;
       const dx = (event.screenX - start.cursor.x) * scale;
       const dy = (event.screenY - start.cursor.y) * scale;
-      if (!draggingRef.current && Math.hypot(dx, dy) < 6 * scale) return;
+      if (!draggingRef.current && Math.hypot(dx, dy) < dragThresholdPx(scale)) {
+        return;
+      }
       draggingRef.current = true;
       ignoreClickRef.current = true;
       const next = { x: start.win.x + dx, y: start.win.y + dy };
       stateRef.current.x = next.x;
       stateRef.current.y = next.y;
+      publishPosition();
       void applyPosition(next.x, next.y);
     },
-    [applyPosition],
+    [applyPosition, publishPosition],
   );
 
   const onPointerUp = useCallback(() => {
@@ -324,10 +357,11 @@ export function useEdgeWalk(opts: {
       try {
         const screen = await readScreen();
         if (!screen) return;
-        const attached = attachPoint(
+        const attached = attachAfterDrag(
           { x: stateRef.current.x, y: stateRef.current.y },
           screen.work,
           screen.winSize,
+          stateRef.current.edge,
         );
         stateRef.current.edge = attached.edge;
         stateRef.current.x = attached.point.x;
@@ -335,42 +369,28 @@ export function useEdgeWalk(opts: {
         stateRef.current.direction = attached.direction;
         stateRef.current.ready = true;
         stateRef.current.turnUntil = 0;
-        await applyPosition(attached.point.x, attached.point.y);
+        publishPosition();
+        if (
+          !almostSamePoint(
+            attached.point,
+            { x: lastApplyRef.current.x, y: lastApplyRef.current.y },
+            1.5,
+          )
+        ) {
+          await applyPosition(attached.point.x, attached.point.y);
+        }
         syncPose(false);
       } catch {
         // Ignore pointer-up races while the window is closing.
       }
     })();
-  }, [applyPosition, syncPose]);
-
-  const reanchor = useCallback(async () => {
-    screenEpochRef.current += 1;
-    try {
-      const screen = await readScreen();
-      if (!screen) return;
-      const pos = await getCurrentWindow().outerPosition();
-      const attached = attachPoint(
-        { x: pos.x, y: pos.y },
-        screen.work,
-        screen.winSize,
-      );
-      stateRef.current.edge = attached.edge;
-      stateRef.current.x = attached.point.x;
-      stateRef.current.y = attached.point.y;
-      stateRef.current.direction = attached.direction;
-      stateRef.current.ready = true;
-      stateRef.current.turnUntil = 0;
-      await applyPosition(attached.point.x, attached.point.y);
-      syncPose(false);
-    } catch {
-      // Ignore races while the window is closing.
-    }
-  }, [applyPosition, syncPose]);
+  }, [applyPosition, publishPosition, syncPose]);
 
   const shouldIgnoreClick = useCallback(() => {
-    if (!ignoreClickRef.current) return false;
+    const dragged = ignoreClickRef.current;
     ignoreClickRef.current = false;
-    return true;
+    const heldMs = performance.now() - downAtRef.current;
+    return !isMoodTap(dragged, heldMs);
   }, []);
 
   useEffect(() => {
@@ -388,12 +408,15 @@ export function useEdgeWalk(opts: {
       const scale = scaleRef.current || window.devicePixelRatio || 1;
       const dx = (event.screenX - start.cursor.x) * scale;
       const dy = (event.screenY - start.cursor.y) * scale;
-      if (!draggingRef.current && Math.hypot(dx, dy) < 6 * scale) return;
+      if (!draggingRef.current && Math.hypot(dx, dy) < dragThresholdPx(scale)) {
+        return;
+      }
       draggingRef.current = true;
       ignoreClickRef.current = true;
       const next = { x: start.win.x + dx, y: start.win.y + dy };
       stateRef.current.x = next.x;
       stateRef.current.y = next.y;
+      publishPosition();
       void applyPosition(next.x, next.y);
     };
     const onUp = () => onPointerUp();
@@ -405,7 +428,7 @@ export function useEdgeWalk(opts: {
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
     };
-  }, [applyPosition, onPointerUp]);
+  }, [applyPosition, onPointerUp, publishPosition]);
 
   return {
     pose,
@@ -414,6 +437,7 @@ export function useEdgeWalk(opts: {
     onPointerUp,
     shouldIgnoreClick,
     interactingRef,
-    reanchor,
+    movingRef,
+    positionRef,
   };
 }

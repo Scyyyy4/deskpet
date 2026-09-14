@@ -5,6 +5,9 @@ export const MAX_SCALE = 3;
 export const STORAGE_KEY = "deskpet.window-size";
 export const WHEEL_SCALE_STEP = 1.08;
 
+/** Compact in-app menu needs at least the default window; smaller pets grow while it is open. */
+export const MENU_FIT_SCALE = 1;
+
 export const RESIZE_DIRS = [
   "n",
   "s",
@@ -144,6 +147,24 @@ export function nextScaleFromWheel(scale: number, deltaY: number): number {
   if (deltaY === 0) return clampScale(scale);
   const factor = deltaY > 0 ? 1 / WHEEL_SCALE_STEP : WHEEL_SCALE_STEP;
   return clampScale(scale * factor);
+}
+
+export function nextScaleFromNudge(scale: number, direction: 1 | -1): number {
+  return nextScaleFromWheel(scale, direction < 0 ? 1 : -1);
+}
+
+export function sizeForMenu(current: Size): Size | null {
+  const currentScale = scaleFromLogicalSize(current.width, current.height);
+  if (currentScale >= MENU_FIT_SCALE) return null;
+  return logicalSizeFromScale(MENU_FIT_SCALE);
+}
+
+export function wheelShouldScale(input: {
+  deltaY: number;
+  ctrlKey: boolean;
+  metaKey: boolean;
+}): boolean {
+  return input.deltaY !== 0 && (input.ctrlKey || input.metaKey);
 }
 
 /** Keep the walking attach-edge planted while the window grows or shrinks. */

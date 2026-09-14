@@ -13,13 +13,13 @@ Built with **Tauri 2 + React**. Desktop only — Windows, macOS, and Linux.
 | Action | What happens |
 |--------|----------------|
 | **Walks on its own** | Patrols the work-area edge (above the taskbar / dock), turns around at the ends |
-| **Drag** | Move the pet anywhere; walking pauses, then resumes on the nearest edge |
-| **Click** | Cycle moods: idle → happy → sleep (sleep rests in place) |
-| **Right-click** | Open menu (change mood / change skin / quit) |
-| **Resize** | Drag the window edges/corners, or scroll the mouse wheel on the pet (remembered) |
+| **Drag** | Move the pet; walking pauses, then resumes on the same edge unless you clearly dropped it on another side |
+| **Click** | Short tap cycles moods: idle → happy → sleep (sleep rests in place). A hold or drag does not. |
+| **Right-click** | Open menu (换心情 / 皮肤 / 大小 / 退出) |
+| **Resize** | Ctrl/⌘ + mouse wheel on the pet, or 缩小/放大 in the menu (remembered) |
 | **Click-through** | Empty/transparent window padding passes clicks to whatever is underneath |
 
-The window is borderless, transparent, and stays on top — like a classic desk pet, not a normal app window. Drag the pet to the top or a side and it will walk that edge instead (it turns so its feet stay on the edge). There are no extra settings.
+The window is borderless, transparent, and stays on top — like a classic desk pet, not a normal app window. Drag the pet to the top or a side and it will walk that edge instead (it turns so its feet stay on the edge). Plain mouse-wheel scrolling is left for the desktop underneath; hold Ctrl (⌘ on macOS) to scale the pet. There are no extra settings.
 
 ---
 

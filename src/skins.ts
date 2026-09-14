@@ -7,10 +7,10 @@ export const DEFAULT_SKIN: Skin = "blob";
 export const STORAGE_KEY = "deskpet.skin";
 
 export const SKIN_LABELS: Record<Skin, string> = {
-  blob: "Yellow blob",
-  peach: "Peach puff",
-  cat: "Cat bean",
-  drop: "Blue drop",
+  blob: "黄豆",
+  peach: "蜜桃",
+  cat: "猫猫",
+  drop: "水滴",
 };
 
 export function isSkin(value: string | null | undefined): value is Skin {

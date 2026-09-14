@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { rectsFromElements } from "./clickThrough";
+import { needsAlwaysOnTopWatch } from "./platform";
 import {
   SKIN_LABELS,
   SKINS,
@@ -11,7 +11,6 @@ import {
 import { useClickThrough } from "./useClickThrough";
 import { useEdgeWalk } from "./useEdgeWalk";
 import { useWindowResize } from "./useWindowResize";
-import { RESIZE_DIRS } from "./windowSize";
 import "./App.css";
 
 type Mood = "idle" | "happy" | "sleep";
@@ -21,6 +20,7 @@ const moods: Mood[] = ["idle", "happy", "sleep"];
 async function ensureAlwaysOnTop() {
   const win = getCurrentWindow();
   await win.setAlwaysOnTop(true);
+  if (!needsAlwaysOnTopWatch(navigator.userAgent)) return undefined;
   // Some Linux WMs drop the flag after focus changes; re-apply periodically.
   return window.setInterval(() => {
     void win.setAlwaysOnTop(true);
@@ -38,20 +38,15 @@ function App() {
   });
   const resize = useWindowResize({
     edge: walk.pose.edge,
-    reanchor: walk.reanchor,
     resizingRef,
   });
   const petRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   useClickThrough({
     hitRefs: [petRef, menuRef],
-    extraHits: () =>
-      rectsFromElements(
-        resize.handlesRef.current
-          ? [...resize.handlesRef.current.querySelectorAll(".resize-handle")]
-          : [],
-      ),
     pinnedRefs: [walk.interactingRef, resize.resizingRef],
+    movingRef: walk.movingRef,
+    positionRef: walk.positionRef,
   });
 
   const cycleMood = useCallback(() => {
@@ -89,26 +84,16 @@ function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  useEffect(() => {
+    void resize.ensureMenuRoom(menuOpen);
+  }, [menuOpen, resize.ensureMenuRoom]);
+
   return (
     <main
       className="stage"
       data-edge={walk.pose.edge}
       style={{ "--pet-scale": resize.scale } as CSSProperties}
     >
-      <div className="resize-frame" ref={resize.handlesRef}>
-        {RESIZE_DIRS.map((dir) => (
-          <div
-            key={dir}
-            className={`resize-handle ${dir}`}
-            data-dir={dir}
-            onPointerDown={resize.onHandlePointerDown}
-            onPointerMove={resize.onHandlePointerMove}
-            onPointerUp={resize.onHandlePointerUp}
-            onPointerCancel={resize.onHandlePointerUp}
-          />
-        ))}
-      </div>
-
       <div
         ref={petRef}
         className={`pet mood-${mood}${walk.pose.moving ? " walking" : ""}`}
@@ -160,10 +145,10 @@ function App() {
           onContextMenu={(e) => e.preventDefault()}
         >
           <button type="button" onClick={cycleMood}>
-            Change mood
+            换心情
           </button>
-          <p className="menu-label">Skin</p>
-          <div className="menu-skins" role="group" aria-label="Skin">
+          <p className="menu-label">皮肤</p>
+          <div className="menu-skins" role="group" aria-label="皮肤">
             {SKINS.map((id) => (
               <button
                 key={id}
@@ -176,8 +161,17 @@ function App() {
               </button>
             ))}
           </div>
+          <p className="menu-label">大小</p>
+          <div className="menu-size" role="group" aria-label="大小">
+            <button type="button" onClick={() => resize.nudge(-1)}>
+              缩小
+            </button>
+            <button type="button" onClick={() => resize.nudge(1)}>
+              放大
+            </button>
+          </div>
           <button type="button" className="danger" onClick={quit}>
-            Quit
+            退出
           </button>
         </div>
       )}

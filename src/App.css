@@ -31,6 +31,8 @@ body {
   place-items: end center;
   position: relative;
   pointer-events: none;
+  /* Inset so side-edge rotation + waddle does not clip into the window. */
+  padding: 10px;
 }
 
 .stage[data-edge="top"] {
@@ -39,10 +41,12 @@ body {
 
 .stage[data-edge="left"] {
   place-items: center start;
+  padding-left: 16px;
 }
 
 .stage[data-edge="right"] {
   place-items: center end;
+  padding-right: 16px;
 }
 
 .pet {
@@ -56,6 +60,7 @@ body {
   pointer-events: auto;
   cursor: grab;
   touch-action: none;
+  overflow: visible;
 }
 
 .pet-gfx {
@@ -482,100 +487,22 @@ body {
   width: 78px;
 }
 
-.resize-frame {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.resize-handle {
-  position: absolute;
-  pointer-events: auto;
-  touch-action: none;
-  background: transparent;
-}
-
-.resize-handle:hover {
-  background: rgba(240, 180, 70, 0.28);
-}
-
-.resize-handle.n,
-.resize-handle.s {
-  left: 12px;
-  right: 12px;
-  height: 10px;
-  cursor: ns-resize;
-}
-
-.resize-handle.e,
-.resize-handle.w {
-  top: 12px;
-  bottom: 12px;
-  width: 10px;
-  cursor: ew-resize;
-}
-
-.resize-handle.n {
-  top: 0;
-}
-
-.resize-handle.s {
-  bottom: 0;
-}
-
-.resize-handle.e {
-  right: 0;
-}
-
-.resize-handle.w {
-  left: 0;
-}
-
-.resize-handle.ne,
-.resize-handle.nw,
-.resize-handle.se,
-.resize-handle.sw {
-  width: 14px;
-  height: 14px;
-}
-
-.resize-handle.ne {
-  top: 0;
-  right: 0;
-  cursor: nesw-resize;
-}
-
-.resize-handle.nw {
-  top: 0;
-  left: 0;
-  cursor: nwse-resize;
-}
-
-.resize-handle.se {
-  bottom: 0;
-  right: 0;
-  cursor: nwse-resize;
-}
-
-.resize-handle.sw {
-  bottom: 0;
-  left: 0;
-  cursor: nesw-resize;
-}
-
 .menu {
   position: absolute;
   z-index: 3;
-  top: 12px;
-  right: 8px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: calc(100% - 10px);
+  max-height: calc(100% - 10px);
+  overflow: auto;
   pointer-events: auto;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px;
+  gap: 2px;
+  padding: 5px;
   border-radius: 10px;
-  background: rgba(255, 252, 245, 0.92);
+  background: rgba(255, 252, 245, 0.94);
   border: 1px solid rgba(60, 40, 20, 0.15);
   box-shadow: 0 8px 20px rgba(40, 28, 12, 0.18);
   backdrop-filter: blur(8px);
@@ -586,7 +513,7 @@ body {
   background: transparent;
   color: #2b2118;
   font-size: 12px;
-  padding: 6px 10px;
+  padding: 4px 8px;
   border-radius: 6px;
   cursor: pointer;
   text-align: left;
@@ -622,6 +549,12 @@ body {
 .menu-skins button.active {
   background: rgba(240, 180, 70, 0.35);
   font-weight: 600;
+}
+
+.menu-size {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
 }
 
 @keyframes bob {

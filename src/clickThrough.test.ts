@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   HOLD_PAD_PX,
+  IGNORE_AFTER_MS,
   REGAIN_PAD_PX,
   cursorToWindowLocal,
   pointInRect,
+  releaseIgnoreCursorEvents,
   shouldIgnoreCursorEvents,
 } from "./clickThrough.ts";
 
@@ -107,4 +109,72 @@ describe("shouldIgnoreCursorEvents", () => {
       false,
     );
   });
+
+  it("uses a wider pad while the pet is walking so the moving hit box is easier to grab", () => {
+    const near = { x: pet.left - 16, y: 130 };
+    assert.equal(
+      shouldIgnoreCursorEvents({
+        pinned: false,
+        local: near,
+        hits: [pet],
+        currentlyIgnoring: false,
+        moving: false,
+      }),
+      true,
+    );
+    assert.equal(
+      shouldIgnoreCursorEvents({
+        pinned: false,
+        local: near,
+        hits: [pet],
+        currentlyIgnoring: false,
+        moving: true,
+      }),
+      false,
+    );
+  });
 });
+
+describe("releaseIgnoreCursorEvents", () => {
+  it("turns click-through off immediately when the cursor is over a hit", () => {
+    assert.equal(
+      releaseIgnoreCursorEvents({
+        wantIgnore: false,
+        currentlyIgnoring: true,
+        outsideMs: 1000,
+      }),
+      false,
+    );
+  });
+
+  it("keeps the pet interactive until the cursor has been outside for a beat", () => {
+    assert.equal(
+      releaseIgnoreCursorEvents({
+        wantIgnore: true,
+        currentlyIgnoring: false,
+        outsideMs: 40,
+      }),
+      false,
+    );
+    assert.equal(
+      releaseIgnoreCursorEvents({
+        wantIgnore: true,
+        currentlyIgnoring: false,
+        outsideMs: IGNORE_AFTER_MS,
+      }),
+      true,
+    );
+  });
+
+  it("stays ignoring once click-through is already on", () => {
+    assert.equal(
+      releaseIgnoreCursorEvents({
+        wantIgnore: true,
+        currentlyIgnoring: true,
+        outsideMs: 0,
+      }),
+      true,
+    );
+  });
+});
+

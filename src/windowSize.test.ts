@@ -8,11 +8,14 @@ import {
   WHEEL_SCALE_STEP,
   clampScale,
   logicalSizeFromScale,
+  nextScaleFromNudge,
   nextScaleFromWheel,
   nextSizeFromHandle,
   parseSavedSize,
   positionAfterScale,
   scaleFromLogicalSize,
+  sizeForMenu,
+  wheelShouldScale,
 } from "./windowSize.ts";
 
 describe("scale helpers", () => {
@@ -186,5 +189,38 @@ describe("wheel / attach-edge", () => {
       }),
       { x: -80, y: 700 },
     );
+  });
+
+  it("only scales the pet when Ctrl or ⌘ is held", () => {
+    assert.equal(
+      wheelShouldScale({ deltaY: 40, ctrlKey: false, metaKey: false }),
+      false,
+    );
+    assert.equal(
+      wheelShouldScale({ deltaY: 40, ctrlKey: true, metaKey: false }),
+      true,
+    );
+    assert.equal(
+      wheelShouldScale({ deltaY: -12, ctrlKey: false, metaKey: true }),
+      true,
+    );
+    assert.equal(
+      wheelShouldScale({ deltaY: 0, ctrlKey: true, metaKey: false }),
+      false,
+    );
+  });
+
+  it("nudges scale the same way as a wheel tick", () => {
+    assert.equal(nextScaleFromNudge(1, 1), WHEEL_SCALE_STEP);
+    assert.equal(nextScaleFromNudge(1, -1), 1 / WHEEL_SCALE_STEP);
+  });
+
+  it("grows a tiny window to the menu-fit size and leaves a normal one alone", () => {
+    assert.deepEqual(sizeForMenu({ width: 90, height: 100 }), {
+      width: BASE_WIDTH,
+      height: BASE_HEIGHT,
+    });
+    assert.equal(sizeForMenu({ width: BASE_WIDTH, height: BASE_HEIGHT }), null);
+    assert.equal(sizeForMenu({ width: 360, height: 400 }), null);
   });
 });

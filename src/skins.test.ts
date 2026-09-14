@@ -12,7 +12,7 @@ describe("built-in skins", () => {
   it("keeps the yellow blob as the default", () => {
     assert.equal(DEFAULT_SKIN, "blob");
     assert.equal(SKINS[0], "blob");
-    assert.equal(SKIN_LABELS.blob, "Yellow blob");
+    assert.equal(SKIN_LABELS.blob, "黄豆");
   });
 
   it("ships at least three other distinct skins", () => {
@@ -28,6 +28,7 @@ describe("parseSavedSkin", () => {
     assert.equal(parseSavedSkin(""), null);
     assert.equal(parseSavedSkin("nope"), null);
     assert.equal(parseSavedSkin("Yellow blob"), null);
+    assert.equal(parseSavedSkin("黄豆"), null);
   });
 
   it("accepts every built-in id", () => {

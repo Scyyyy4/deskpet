@@ -99,18 +99,84 @@ function edgeTieBreak(edge: Edge): number {
   }
 }
 
+export function distanceToEdge(edge: Edge, win: Rect, work: Rect): number {
+  switch (edge) {
+    case "top":
+      return Math.abs(win.y - work.y);
+    case "bottom":
+      return Math.abs(win.y + win.height - (work.y + work.height));
+    case "left":
+      return Math.abs(win.x - work.x);
+    case "right":
+      return Math.abs(win.x + win.width - (work.x + work.width));
+  }
+}
+
 /** Closest work-area edge to the window; bottom wins ties (typical desk-pet rest). */
 export function nearestEdge(win: Rect, work: Rect): Edge {
   const distances: [Edge, number][] = [
-    ["top", Math.abs(win.y - work.y)],
-    ["bottom", Math.abs(win.y + win.height - (work.y + work.height))],
-    ["left", Math.abs(win.x - work.x)],
-    ["right", Math.abs(win.x + win.width - (work.x + work.width))],
+    ["top", distanceToEdge("top", win, work)],
+    ["bottom", distanceToEdge("bottom", win, work)],
+    ["left", distanceToEdge("left", win, work)],
+    ["right", distanceToEdge("right", win, work)],
   ];
   distances.sort(
     (a, b) => a[1] - b[1] || edgeTieBreak(a[0]) - edgeTieBreak(b[0]),
   );
   return distances[0][0];
+}
+
+/** Stay on the current edge unless another is clearly closer (avoids resize/drag flip-flops). */
+export const EDGE_STICK_PX = 48;
+
+export function nearestEdgeSticky(
+  win: Rect,
+  work: Rect,
+  current: Edge,
+  stickPx = EDGE_STICK_PX,
+): Edge {
+  const next = nearestEdge(win, work);
+  if (next === current) return current;
+  const nextDist = distanceToEdge(next, win, work);
+  const currentDist = distanceToEdge(current, win, work);
+  if (nextDist + stickPx < currentDist) return next;
+  return current;
+}
+
+/** Keep the current edge and along-position; only plant the perpendicular axis. */
+export function followEdge(
+  edge: Edge,
+  pos: Point,
+  work: Rect,
+  size: Size,
+): Point {
+  return pointOnEdge(edge, alongOf(edge, pos), work, size);
+}
+
+export function attachAfterDrag(
+  pos: Point,
+  work: Rect,
+  winSize: Size,
+  currentEdge: Edge,
+): { edge: Edge; point: Point; direction: Direction } {
+  const winRect = {
+    x: pos.x,
+    y: pos.y,
+    width: winSize.width,
+    height: winSize.height,
+  };
+  const edge = nearestEdgeSticky(winRect, work, currentEdge);
+  const limits = alongLimits(edge, work, winSize);
+  const along = alongOf(edge, pos);
+  return {
+    edge,
+    point: pointOnEdge(edge, along, work, winSize),
+    direction: directionTowardFarEnd(along, limits.min, limits.max),
+  };
+}
+
+export function almostSamePoint(a: Point, b: Point, eps = 1.5): boolean {
+  return Math.abs(a.x - b.x) <= eps && Math.abs(a.y - b.y) <= eps;
 }
 
 export function preferredStartEdge(): Edge {
@@ -165,6 +231,18 @@ export function facingFor(_edge: Edge, direction: Direction): Facing {
   return direction === 1 ? "right" : "left";
 }
 
+/** Physical-pixel drag slop; `scale` is CSS→physical (devicePixelRatio / outer÷inner). */
 export function dragThresholdPx(scale: number): number {
   return Math.max(24, 16 * scale);
+}
+
+/** Presses longer than this are treated as grabs, not mood-cycle taps. */
+export const TAP_MAX_MS = 280;
+
+export function isMoodTap(
+  dragged: boolean,
+  heldMs: number,
+  tapMaxMs = TAP_MAX_MS,
+): boolean {
+  return !dragged && heldMs >= 0 && heldMs <= tapMaxMs;
 }

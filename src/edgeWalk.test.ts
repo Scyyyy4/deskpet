@@ -1,12 +1,19 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  EDGE_STICK_PX,
+  TAP_MAX_MS,
   alongLimits,
+  almostSamePoint,
+  attachAfterDrag,
   clamp,
   directionTowardFarEnd,
   dragThresholdPx,
   facingFor,
+  followEdge,
+  isMoodTap,
   nearestEdge,
+  nearestEdgeSticky,
   pointOnEdge,
   preferredStartEdge,
   rotationFor,
@@ -178,5 +185,69 @@ describe("facing / rotation / start", () => {
   it("scales the drag threshold with DPI", () => {
     assert.equal(dragThresholdPx(1), 24);
     assert.equal(dragThresholdPx(2), 32);
+  });
+
+  it("treats a short still press as a mood tap and a hold or drag as a grab", () => {
+    assert.equal(isMoodTap(false, 40), true);
+    assert.equal(isMoodTap(false, TAP_MAX_MS), true);
+    assert.equal(isMoodTap(false, TAP_MAX_MS + 1), false);
+    assert.equal(isMoodTap(true, 40), false);
+  });
+});
+
+describe("sticky attach", () => {
+  it("stays on the current edge unless another is clearly closer", () => {
+    const slightlyOffBottom = {
+      x: 400,
+      y: work.height - size.height - 20,
+      width: size.width,
+      height: size.height,
+    };
+    assert.equal(nearestEdge(slightlyOffBottom, work), "bottom");
+    assert.equal(
+      nearestEdgeSticky(slightlyOffBottom, work, "bottom"),
+      "bottom",
+    );
+
+    const nearTop = {
+      x: 400,
+      y: 4,
+      width: size.width,
+      height: size.height,
+    };
+    assert.equal(nearestEdge(nearTop, work), "top");
+    assert.equal(nearestEdgeSticky(nearTop, work, "bottom"), "top");
+  });
+
+  it("does not flip to a side after a small drag along the bottom", () => {
+    const alongBottom = {
+      x: 20,
+      y: work.height - size.height - 10,
+      width: size.width,
+      height: size.height,
+    };
+    assert.ok(EDGE_STICK_PX > 10);
+    assert.equal(nearestEdgeSticky(alongBottom, work, "bottom"), "bottom");
+  });
+
+  it("plants the current edge without changing along-position after a resize", () => {
+    const pos = { x: 500, y: work.height - size.height };
+    const grown = { width: 360, height: 400 };
+    const planted = followEdge("bottom", pos, work, grown);
+    assert.equal(planted.x, 500);
+    assert.equal(planted.y, work.height - grown.height);
+  });
+
+  it("attaches after a drag using the sticky edge", () => {
+    const dropped = { x: 600, y: work.height - size.height - 12 };
+    const attached = attachAfterDrag(dropped, work, size, "bottom");
+    assert.equal(attached.edge, "bottom");
+    assert.equal(attached.point.x, 600);
+    assert.equal(attached.point.y, work.height - size.height);
+  });
+
+  it("treats nearby points as the same so a no-op attach does not yank", () => {
+    assert.equal(almostSamePoint({ x: 10, y: 20 }, { x: 10.4, y: 21.2 }), true);
+    assert.equal(almostSamePoint({ x: 10, y: 20 }, { x: 14, y: 20 }), false);
   });
 });
