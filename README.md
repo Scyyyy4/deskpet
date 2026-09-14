@@ -12,11 +12,12 @@ Built with **Tauri 2 + React**. Desktop only — Windows, macOS, and Linux.
 
 | Action | What happens |
 |--------|----------------|
-| **Drag** | Move the pet anywhere on screen |
-| **Click** | Cycle moods: idle → happy → sleep |
+| **Walks on its own** | Patrols the work-area edge (above the taskbar / dock), turns around at the ends |
+| **Drag** | Move the pet anywhere; walking pauses, then resumes on the nearest edge |
+| **Click** | Cycle moods: idle → happy → sleep (sleep rests in place) |
 | **Right-click** | Open menu (change mood / quit) |
 
-The window is borderless, transparent, and stays on top — like a classic desk pet, not a normal app window.
+The window is borderless, transparent, and stays on top — like a classic desk pet, not a normal app window. Drag the pet to the top or a side and it will walk that edge instead (it turns so its feet stay on the edge). There are no extra settings.
 
 ---
 
@@ -69,7 +70,6 @@ npm run tauri:build
 This is a standalone pet — not tied to any other app. Possible next steps:
 
 - Custom sprites / GIF / Live2D
-- Walk along screen edges
 - System tray + auto-start
 - Speech bubbles & idle chatter
 
